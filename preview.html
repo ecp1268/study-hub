@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Study Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+--bg:#020617;
+--panel:#0f172a;
+--glass:rgba(15,23,42,0.7);
+--border:rgba(255,255,255,0.06);
+--text:#e5e7eb;
+--muted:#94a3b8;
+--accent:#ffffff;
+--accentSoft:rgba(255,255,255,0.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:radial-gradient(circle at top,#0f172a,#020617);color:var(--text)}
+.layout{display:flex;height:100vh}
+.sidebar{width:250px;background:var(--glass);backdrop-filter:blur(20px);border-right:1px solid var(--border);padding:20px}
+.logo{font-size:20px;font-weight:700;margin-bottom:20px}
+.nav a{display:block;padding:12px;border-radius:10px;color:var(--muted);cursor:pointer;margin-bottom:8px}
+.nav a:hover,.nav a.active{background:var(--accentSoft);color:white}
+.main{flex:1;padding:25px;overflow:auto}
+.page{display:none}
+.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:20px}
+.card{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:16px}
+.col-4{grid-column:span 4}.col-6{grid-column:span 6}.col-12{grid-column:span 12}
+input,select,textarea{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid var(--border);background:#020617;color:white}
+button{width:100%;padding:11px;margin-top:8px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:white;font-weight:600;cursor:pointer;transition:.2s;}
+button:hover{background:rgba(255,255,255,0.12);transform:translateY(-1px);}
+button.primary{background:white;color:black;}
+button.primary:hover{opacity:.9;}
+.task{display:flex;align-items:center;margin-top:8px;padding:10px;background:#020617;border-radius:10px;word-break:break-word}
+.task span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.task button{margin-left:8px;padding:0 8px;flex-shrink:0}
+.timer{text-align:center;font-size:32px;margin-top:10px}
+.small{font-size:12px;color:var(--muted);margin-top:5px}
+.chart-container{max-width:400px;margin:auto}
+.reminder,.note-item{display:flex;align-items:center;margin-top:8px;padding:8px;background:#020617;border-radius:10px}
+.reminder span,.note-item span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reminder button,.note-item button{margin-left:8px;padding:0 8px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+<div class="logo">Study Hub</div>
+<div class="nav">
+<a class="active" onclick="switchPage('dashboard',this)">Dashboard</a>
+<a onclick="switchPage('tasks',this)">Tasks</a>
+<a onclick="switchPage('focus',this)">Focus</a>
+<a onclick="switchPage('notes',this)">Notes</a>
+<a onclick="switchPage('analytics',this)">Analytics</a>
+</div>
+</div>
+<div class="main">
+<div id="dashboard" class="page active">
+<div class="grid">
+<div class="card col-4"><h3>Total Tasks</h3><div id="totalTasks"></div></div>
+<div class="card col-4"><h3>Completed</h3><div id="completedTasks"></div></div>
+<div class="card col-4"><h3>Completion %</h3><div id="percent"></div></div>
+<div class="card col-4"><h3>Upcoming Deadlines</h3><div id="upcomingDeadlines"></div></div>
+<div class="card col-4"><h3>Focus Sessions</h3><div id="focusSessions"></div></div>
+<div class="card col-4"><h3>Resources Quick Links</h3><div id="resourcesLinks"></div></div>
+<div class="card col-6"><h3>Recent Tasks</h3><div id="recent"></div></div>
+<div class="card col-6"><h3>Quick Add</h3><input id="quickTask"><button class="primary" onclick="quickAdd()">Add</button></div>
+</div>
+</div>
+<div id="tasks" class="page">
+<div class="card">
+<h3>Task Manager</h3>
+<input id="taskInput" placeholder="New task">
+<button class="primary" onclick="addTask()">Add</button>
+<button onclick="clearTasks()">Clear All</button>
+<button onclick="sortTasks()">Sort A-Z</button>
+<input id="search" placeholder="Search">
+<div id="taskList"></div>
+</div>
+</div>
+<div id="focus" class="page">
+<div class="card">
+<h3>Focus Timer + Lofi Music</h3>
+<input id="minutes" placeholder="Minutes">
+<button class="primary" onclick="startTimer()">Start</button>
+<button onclick="pauseTimer()">Pause</button>
+<button onclick="resetTimer()">Reset</button>
+<div class="timer" id="timer">00:00</div>
+<div class="small">Sessions: <span id="sessions">0</span></div>
+<div class="small">Last Session: <span id="lastSession">None</span></div>
+<div class="small">Music: Lofi Chill (YouTube Audio)</div>
+<button onclick="playMusic()">Play Lofi</button>
+<button onclick="pauseMusic()">Pause</button>
+<iframe id="musicPlayer" src="https://www.youtube.com/embed/5qap5aO4i9A?autoplay=1&loop=1&playlist=5qap5aO4i9A&enablejsapi=1" style="display:none" allow="autoplay"></iframe>
+</div>
+</div>
+<div id="notes" class="page">
+<div class="grid">
+<div class="card col-6">
+<h3>Notes</h3>
+<textarea id="noteBox" placeholder="Write your notes here..."></textarea>
+<button class="primary" onclick="saveNotes()">Save Notes</button>
+<button onclick="clearNotes()">Clear Notes</button>
+<button onclick="copyNotes()">Copy Notes</button>
+<button onclick="downloadNotes()">Download Notes</button>
+<div class="small">Auto saved locally</div>
+<div id="noteList"></div>
+</div>
+<div class="card col-6">
+<h3>Reminders</h3>
+<input id="reminderInput" placeholder="Add a reminder">
+<button class="primary" onclick="addReminder()">Add Reminder</button>
+<div id="reminderList"></div>
+</div>
+</div>
+</div>
+<div id="analytics" class="page">
+<div class="card chart-container">
+<h3>Analytics</h3>
+<canvas id="chart"></canvas>
+<div class="small">Total: <span id="aTotal"></span></div>
+<div class="small">Done: <span id="aDone"></span></div>
+<div class="small">Pending: <span id="aPending"></span></div>
+<div class="small">Completion Rate: <span id="aPercent"></span></div>
+<div class="small">Next Deadline: <span id="aNextDeadline"></span></div>
+<div class="small">Focus Hours: <span id="aFocusHours"></span></div>
+<div class="small">Tasks Today: <span id="aTodayTasks"></span></div>
+<button onclick="exportData()">Export Data</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+let tasks=JSON.parse(localStorage.getItem('tasks')||'[]');
+let notes=JSON.parse(localStorage.getItem('notesList')||'[]');
+let reminders=JSON.parse(localStorage.getItem('reminders')||'[]');
+let timerInt=null,timeLeft=0,sessions=0;
+const timerEl=document.getElementById('timer');
+const sessionsEl=document.getElementById('sessions');
+const lastSession=document.getElementById('lastSession');
+const taskInput=document.getElementById('taskInput');
+const quickTask=document.getElementById('quickTask');
+const search=document.getElementById('search');
+const totalTasks=document.getElementById('totalTasks');
+const completedTasks=document.getElementById('completedTasks');
+const percent=document.getElementById('percent');
+const recent=document.getElementById('recent');
+const upcomingDeadlines=document.getElementById('upcomingDeadlines');
+const focusSessions=document.getElementById('focusSessions');
+const resourcesLinks=document.getElementById('resourcesLinks');
+const aTotal=document.getElementById('aTotal');
+const aDone=document.getElementById('aDone');
+const aPending=document.getElementById('aPending');
+const aPercent=document.getElementById('aPercent');
+const aNextDeadline=document.getElementById('aNextDeadline');
+const aFocusHours=document.getElementById('aFocusHours');
+const aTodayTasks=document.getElementById('aTodayTasks');
+const noteBox=document.getElementById('noteBox');
+const noteList=document.getElementById('noteList');
+const reminderInput=document.getElementById('reminderInput');
+const reminderList=document.getElementById('reminderList');
+const chartEl=document.getElementById('chart');
+let chartInstance=null;
+
+function switchPage(id,el){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('.nav a').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
+
+// Tasks Functions
+function render(){
+let list=document.getElementById('taskList');list.innerHTML='';
+let filter=(search?.value||'').toLowerCase();
+tasks.filter(t=>t.name.toLowerCase().includes(filter)).forEach((t,i)=>{
+let d=document.createElement('div');d.className='task';
+let btnCheck=document.createElement('button');btnCheck.textContent='✓';btnCheck.onclick=()=>toggleDone(i);
+let btnX=document.createElement('button');btnX.textContent='✕';btnX.onclick=()=>removeTask(i);
+let span=document.createElement('span');span.textContent=t.name;
+d.appendChild(span);d.appendChild(btnCheck);d.appendChild(btnX);
+list.appendChild(d);
+});
+let done=tasks.filter(t=>t.done).length;
+totalTasks.textContent=tasks.length;
+completedTasks.textContent=done;
+percent.textContent=tasks.length?Math.round(done/tasks.length*100)+'%':'0%';
+recent.innerHTML=tasks.slice(-3).map(t=>t.name).join('<br>');
+upcomingDeadlines.textContent=tasks.slice(0,3).map(t=>t.name+' - Due Soon').join('<br>');
+focusSessions.textContent=sessions;
+resourcesLinks.innerHTML='<a href="#">Khan Academy</a><br><a href="#">Quizlet</a><br><a href="#">Coursera</a>';
+aTotal.textContent=tasks.length;
+aDone.textContent=done;
+aPending.textContent=tasks.length-done;
+aPercent.textContent=tasks.length?Math.round(done/tasks.length*100)+'%':'0%';
+aNextDeadline.textContent=tasks[0]?.name||'None';
+aFocusHours.textContent=(sessions*25/60).toFixed(2)+'h';
+aTodayTasks.textContent=tasks.length;
+updateChart();
+renderNotes();
+renderReminders();
+}
+function addTask(){if(!taskInput.value)return;tasks.push({name:taskInput.value,done:false});save();taskInput.value='';render();}
+function quickAdd(){if(!quickTask.value)return;tasks.push({name:quickTask.value,done:false});save();quickTask.value='';render();}
+function removeTask(i){tasks.splice(i,1);save();render();}
+function toggleDone(i){if(tasks[i]){tasks[i].done=!tasks[i].done;save();render();}}
+function clearTasks(){tasks=[];save();render();}
+function sortTasks(){tasks.sort((a,b)=>a.name.localeCompare(b.name));render();}
+function save(){localStorage.setItem('tasks',JSON.stringify(tasks));}
+
+// Timer Functions
+function startTimer(){if(timerInt!==null){clearInterval(timerInt);}timeLeft=parseInt(document.getElementById('minutes').value||0)*60;updateTimerDisplay();timerInt=setInterval(()=>{timeLeft--;updateTimerDisplay();if(timeLeft<0){timeLeft=0;updateTimerDisplay();sessions++;sessionsEl.textContent=sessions;lastSession.textContent=new Date().toLocaleTimeString();}},1000);}
+function pauseTimer(){if(timerInt!==null){clearInterval(timerInt);timerInt=null;}}
+function resetTimer(){if(timerInt!==null){clearInterval(timerInt);timerInt=null;}timerEl.textContent='00:00';}
+function updateTimerDisplay(){let m=Math.floor(timeLeft/60);let s=timeLeft%60;timerEl.textContent=`${m}:${s<10?'0'+s:s}`;}
+function playMusic(){document.getElementById('musicPlayer').contentWindow.postMessage(JSON.stringify({event:'command',func:'playVideo',args:[]}), '*');}
+function pauseMusic(){document.getElementById('musicPlayer').contentWindow.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:[]}), '*');}
+
+// Notes Functions
+function saveNotes(){if(noteBox.value.trim()==='')return;notes.push(noteBox.value.trim());localStorage.setItem('notesList',JSON.stringify(notes));noteBox.value='';renderNotes();}
+function clearNotes(){noteBox.value='';renderNotes();}
+function copyNotes(){navigator.clipboard.writeText(noteBox.value);}
+function downloadNotes(){let blob=new Blob([noteBox.value]);let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='notes.txt';a.click();}
+function renderNotes(){noteList.innerHTML='';notes.forEach((n,i)=>{let div=document.createElement('div');div.className='note-item';let span=document.createElement('span');span.textContent=n;let btn=document.createElement('button');btn.textContent='✕';btn.onclick=()=>{notes.splice(i,1);localStorage.setItem('notesList',JSON.stringify(notes));renderNotes();};div.appendChild(span);div.appendChild(btn);noteList.appendChild(div);});}
+
+// Reminders Functions
+function addReminder(){if(!reminderInput.value)return;reminders.push(reminderInput.value);localStorage.setItem('reminders',JSON.stringify(reminders));reminderInput.value='';renderReminders();}
+function renderReminders(){reminderList.innerHTML='';reminders.forEach((r,i)=>{let div=document.createElement('div');div.className='reminder';let span=document.createElement('span');span.textContent=r;let btn=document.createElement('button');btn.textContent='✕';btn.onclick=()=>{reminders.splice(i,1);localStorage.setItem('reminders',JSON.stringify(reminders));renderReminders();};div.appendChild(span);div.appendChild(btn);reminderList.appendChild(div);});}
+
+// Analytics
+function updateChart(){if(chartInstance)chartInstance.destroy();chartInstance=new Chart(chartEl,{type:'doughnut',data:{datasets:[{data:[tasks.filter(t=>t.done).length,tasks.length-tasks.filter(t=>t.done).length,0],backgroundColor:['#4ade80','#f87171','#cbd5e1']}]}});}
+
+search?.addEventListener('input',render);
+render();
+</script>
+</body>
+</html>
